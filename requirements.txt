@@ -1,0 +1,5 @@
+# melite-tts-nodes — deps BEYOND the engine base env. The
+# qwen3_tts engine proxies the official qwen-tts package.
+# Manager reads this file on install.
+pydantic
+qwen-tts==0.1.1
