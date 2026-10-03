@@ -4,7 +4,6 @@ Exposes the full inference surface via NATIVE in-process loading
 (libaudiocore_native.so loaded by ctypes — no HTTP, no subprocess):
   - LoadAudiocoreModel  — load a family (moss_tts_nano / moss_tts_local / ace_step / qwen3_tts / moss_sfx_v2)
   - AudiocoreTTS        — full TTS (voice clone, design, multilingual) AND SFX (moss_sfx_v2)
-  - AudiocoreMusic      — text-to-music (ACE-Step)
   - AudiocoreVoiceEmbedding — speaker embedding extraction
   - UnloadAudiocoreModel — release VRAM
   - AudiocoreFamilyInfo — list registered families

@@ -14,4 +14,13 @@ NODE_CLASS_MAPPINGS = {
     "AudiocoreVoiceEmbedding": AudiocoreVoiceEmbedding,
     "AudiocoreVoiceStudio": AudiocoreVoiceStudio,
 }
-__all__ = list(NODE_CLASS_MAPPINGS)
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "LoadAudiocoreModel": "LoadAudiocoreModel (Melite)",
+    "UnloadAudiocoreModel": "UnloadAudiocoreModel (Melite)",
+    "AudiocoreFamilyInfo": "AudiocoreFamilyInfo (Melite)",
+    "AudiocoreTTS": "AudiocoreTTS (Melite)",
+    "AudiocoreVoiceEmbedding": "AudiocoreVoiceEmbedding (Melite)",
+    "AudiocoreVoiceStudio": "AudiocoreVoiceStudio (Melite)",
+}
+
+__all__ = [*NODE_CLASS_MAPPINGS, *NODE_DISPLAY_NAME_MAPPINGS]
