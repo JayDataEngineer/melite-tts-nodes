@@ -325,28 +325,6 @@ class AudiocoreFamilyInfo:
         text = "\n".join(lines)
         return {"ui": {"text": [text]}, "result": (text,)}
 
-
-# ── Mappings ─────────────────────────────────────────────────────────────────
-
-NODE_CLASS_MAPPINGS = {
-    "LoadAudiocoreModel": LoadAudiocoreModel,
-    "AudiocoreTTS": AudiocoreTTS,
-    "AudiocoreMusic": AudiocoreMusic,
-    "AudiocoreVoiceEmbedding": AudiocoreVoiceEmbedding,
-    "AudiocoreVoiceStudio": AudiocoreVoiceStudio,
-    "UnloadAudiocoreModel": UnloadAudiocoreModel,
-    "AudiocoreFamilyInfo": AudiocoreFamilyInfo,
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "LoadAudiocoreModel": "Load Audiocore Model",
-    "AudiocoreTTS": "Audiocore TTS",
-    "AudiocoreMusic": "Audiocore Music",
-    "AudiocoreVoiceEmbedding": "Audiocore Voice Embedding",
-    "AudiocoreVoiceStudio": "Voice Studio",
-    "UnloadAudiocoreModel": "Unload Audiocore Model",
-    "AudiocoreFamilyInfo": "Audiocore Family Info",
-}
 class AudiocoreTTS:
     """Text-to-speech AND sound-effect generation via the native engine_runtime.
 
@@ -736,3 +714,25 @@ class AudiocoreVoiceStudio:
 
 # ── Node: Audiocore Music ────────────────────────────────────────────────────
 
+
+# ── Mappings ─────────────────────────────────────────────────────────────────
+
+NODE_CLASS_MAPPINGS = {
+    "LoadAudiocoreModel": LoadAudiocoreModel,
+    "AudiocoreTTS": AudiocoreTTS,
+    "AudiocoreMusic": AudiocoreMusic,
+    "AudiocoreVoiceEmbedding": AudiocoreVoiceEmbedding,
+    "AudiocoreVoiceStudio": AudiocoreVoiceStudio,
+    "UnloadAudiocoreModel": UnloadAudiocoreModel,
+    "AudiocoreFamilyInfo": AudiocoreFamilyInfo,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "LoadAudiocoreModel": "Load Audiocore Model",
+    "AudiocoreTTS": "Audiocore TTS",
+    "AudiocoreMusic": "Audiocore Music",
+    "AudiocoreVoiceEmbedding": "Audiocore Voice Embedding",
+    "AudiocoreVoiceStudio": "Voice Studio",
+    "UnloadAudiocoreModel": "Unload Audiocore Model",
+    "AudiocoreFamilyInfo": "Audiocore Family Info",
+}
