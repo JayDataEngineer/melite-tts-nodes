@@ -720,7 +720,6 @@ class AudiocoreVoiceStudio:
 NODE_CLASS_MAPPINGS = {
     "LoadAudiocoreModel": LoadAudiocoreModel,
     "AudiocoreTTS": AudiocoreTTS,
-    "AudiocoreMusic": AudiocoreMusic,
     "AudiocoreVoiceEmbedding": AudiocoreVoiceEmbedding,
     "AudiocoreVoiceStudio": AudiocoreVoiceStudio,
     "UnloadAudiocoreModel": UnloadAudiocoreModel,
@@ -730,7 +729,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "LoadAudiocoreModel": "Load Audiocore Model",
     "AudiocoreTTS": "Audiocore TTS",
-    "AudiocoreMusic": "Audiocore Music",
     "AudiocoreVoiceEmbedding": "Audiocore Voice Embedding",
     "AudiocoreVoiceStudio": "Voice Studio",
     "UnloadAudiocoreModel": "Unload Audiocore Model",
