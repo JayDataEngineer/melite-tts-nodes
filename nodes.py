@@ -131,31 +131,17 @@ def _run_with_progress(fn, *, interval: float = 1.0):
         raise error_box[0]
     return result_box["value"]
 
-FAMILY_NAMES = {
-    "moss_tts_nano": "MOSS-TTS Nano (8B, Unigram tokenizer)",
-    "moss_tts_local": "MOSS-TTS Local (8B, BPE tokenizer)",
-    "qwen3_tts": "Qwen3-TTS (1.7B)",
-    "ace_step": "ACE-Step (music)",
-    "moss_sfx_v2": "MOSS-SFX v2 (sound effects)",
-}
-
-_DEFAULT_MODEL_DIR = {
-    "moss_tts_nano": "moss-tts",
-    "moss_tts_local": "moss-tts",
-    "qwen3_tts": "qwen3-tts",
-    "ace_step": "acestep-cpp-converted",
-    # Torch checkpoint (model_index.json) — GGUF dirs are retired for this
-    # family (2026-08-11: the pure-torch pipeline replaces the C++ engine).
-    "moss_sfx_v2": "MOSS-SoundEffect-v2.0-src",
-}
 
 
-_WEIGHT_FILE_NAMES = ("model.safetensors", "model_index.json")
-_WEIGHT_FILE_SUFFIXES = (".gguf",)
+
+
+
+
+
 # Walk bound: the provisioning tree nests at most a few levels (the
 # HF cache layout is <name>/snapshots/<hash>/); unbounded recursion
 # over a shared models mount is a boot-time hazard.
-_MAX_WALK_DEPTH = 5
+
 
 
 def _load_progress_sender():
@@ -251,16 +237,30 @@ _SKIP_DIR_NAMES = {"speech_tokenizer", "blobs", "refs", "__pycache__"}
 def _list_audiocore_models() -> list[str]:
     """The combo enum serves the REAL provisioning tree (2026-09-24,
     transcript-015): top-level dirs stay choices (legacy behavior —
-    container dirs like qwen3-tts/ ride even without direct weights),
-    and every nested dir that DIRECTLY holds weights is a choice too —
-    the HF cache layout (<root>/<name>/snapshots/<hash>/model.safetensors)
+    container dirs like qwen3-tts/ ride even without direct weights,
+    and the family's DEFAULT model_path is such a container), and
+    every nested dir that DIRECTLY holds weights is a choice too —
+    the HF cache layout (<name>/snapshots/<hash>/model.safetensors)
     is how the qwen3-tts lanes ship. Before this, ComfyUI's combo
     validation refused every nested lane address at /prompt (400)
-    even though _resolve_model_path would have joined it fine."""
+    even though _resolve_model_path would have joined it fine.
+
+    THE STRUCTURAL STOP (2026-10-13, the one-law merge): a dir that
+    directly holds weights is a LEAF — the walk never recurses into
+    it. Only containers (no direct weights) open. This is what keeps
+    a lane's own parts (model_specs/, anything content-identical to
+    a lane) out of the enum without a name list, and it bounds junk
+    the old union walk offered. Symlinked dirs ride and open like
+    real dirs (the engine tree legitimately links lanes into the
+    store; WHERE weights live is the provisioning law's question,
+    not the enum's) — but a link may never re-enter a dir the walk
+    already holds open: the realpath guard prunes cycles, so a
+    self-referential link can never grow the enum or hang the walk
+    (the depth bound remains the backstop)."""
     found: list[str] = []
     root = _AUDIOCPP_MODELS_DIR
 
-    def walk(rel: str, depth: int) -> None:
+    def walk(rel: str, depth: int, open_real: frozenset[str]) -> None:
         abs_dir = os.path.join(root, rel) if rel else root
         try:
             entries = sorted(os.listdir(abs_dir))
@@ -273,23 +273,30 @@ def _list_audiocore_models() -> list[str]:
             abs_child = os.path.join(root, rel_child)
             if not os.path.isdir(abs_child):
                 continue
+            real_child = os.path.realpath(abs_child)
+            if real_child in open_real:
+                continue
+            holds = _dir_holds_weights(abs_child)
             # Top-level dirs are choices regardless (kept: the legacy
-            # enum + container dirs); a nested dir is a choice only
-            # when it DIRECTLY holds weights.
-            if not rel or _dir_holds_weights(abs_child):
+            # enum + container dirs + the family default); a nested
+            # dir is a choice only when it DIRECTLY holds weights AND
+            # sits within the depth bound — the HF-cache spelling is
+            # rel-depth 5, and nothing deeper is ever offered, even
+            # down a chain of containers (the descent guard and the
+            # listing guard ride the SAME constant).
+            if not rel or (holds and depth + 1 <= _MAX_WALK_DEPTH):
                 found.append(rel_child)
-            # Nested dirs recurse whether or not they hold weights
-            # directly (their children may — the snapshot layout).
-            if depth < _MAX_WALK_DEPTH:
-                walk(rel_child, depth + 1)
+            # THE STRUCTURAL STOP: only containers open — recursion
+            # rides the snapshot layout (<name>/snapshots/<hash>),
+            # never an accepted lane's own parts.
+            if not holds and depth < _MAX_WALK_DEPTH:
+                walk(rel_child, depth + 1, open_real | {real_child})
 
     try:
-        walk("", 0)
+        walk("", 0, frozenset({os.path.realpath(root)}))
     except OSError:
         return []
     return sorted(set(found))
-
-
 def _resolve_model_path(model_path: str) -> str:
     if os.path.isabs(model_path):
         return model_path
