@@ -54,6 +54,17 @@ _FAMILY_TASK: dict[str, str] = {
     "ace_step":         "gen",
 }
 
+# Variant → engine task code (2026-09-20, the 1.7B receipt stroke):
+# the C++ gates per CHECKPOINT variant, not per family — a
+# VoiceDesign-variant checkpoint refuses task tts LOUD ("Qwen3
+# voice design model only supports the VoiceDesign task", task
+# code "vdes" per the fork's session.cpp parse). The lane steers
+# via extras.variant (the estate's ENGINE_TRUTH key); the family
+# map above stays the default.
+_VARIANT_TASK: dict[str, str] = {
+    "voicedesign":      "vdes",
+}
+
 # Families whose engine loader scans the model DIRECTORY for sibling GGUFs.
 _DIR_SCAN_FAMILIES = ("moss_sfx_v2",)
 
@@ -66,6 +77,40 @@ _DIR_SCAN_FAMILIES = ("moss_sfx_v2",)
 # NOT part of this repo). Env override only; empty = specs unavailable and
 # every consumer below degrades gracefully (spec={}, model_spec=None).
 _AUDIOCPP_MODEL_SPECS = os.environ.get("AUDIOCPP_MODEL_SPECS_DIR", "")
+
+# Spec discovery walk (transcript-016, 2026-09-24): the C++ loader's
+# discover_external_model_spec checks <model_path>/model_specs/<family>.json,
+# <model_path>/../model_specs/<family>.json, then walks cwd upward — an HF
+# cache checkout (models--*/snapshots/<hash>) reaches none of those, so the
+# 1.7B snapshot lanes died at load with "install model_specs/qwen3_tts"
+# even though the family spec sits three parents up in the provisioning
+# tree (…/hf/model_specs/qwen3_tts.json). Mirror the C++ candidate walk
+# python-side over the RESOLVED model path's parents and hand the found
+# spec file to the session as model_spec_override (the loader accepts a
+# file or a directory). Bounded depth; the env override still wins.
+_SPEC_WALK_MAX_DEPTH = 6
+
+
+def _discover_model_spec(family: str, model_path: str) -> Optional[str]:
+    if _AUDIOCPP_MODEL_SPECS:
+        candidate_dir = Path(_AUDIOCPP_MODEL_SPECS)
+        if candidate_dir.is_dir():
+            return str(candidate_dir)
+        return None
+    # Path-style model inputs (a single weights file) anchor at the parent.
+    anchor = Path(model_path)
+    if anchor.suffix and not anchor.is_dir():
+        anchor = anchor.parent
+    cursor = anchor
+    for _ in range(_SPEC_WALK_MAX_DEPTH):
+        candidate = cursor / "model_specs" / f"{family}.json"
+        if candidate.is_file():
+            return str(candidate)
+        parent = cursor.parent
+        if parent == cursor:
+            break
+        cursor = parent
+    return None
 
 
 def resolve_model_folder(folder_key: str, env_name: str) -> str:
@@ -246,7 +291,11 @@ class ManagedModel:
         )
         self._loaded_model_wrapper: AudiocoreLoadedModel | None = None
 
-    def load(self, **extras: Any) -> bool:
+    def load(
+        self,
+        on_progress: Optional[Callable[[str], None]] = None,
+        **extras: Any,
+    ) -> bool:
         """Load the model into GPU memory.
 
         moss_sfx_v2 runs the pure-torch diffusion pipeline (TTS-Audio-Suite
@@ -261,7 +310,7 @@ class ManagedModel:
         if self._torch_engine is not None:
             return True
         if self.family == "moss_sfx_v2":
-            return self._load_torch()
+            return self._load_torch(on_progress=on_progress)
         if self._session is not None:
             return True
 
@@ -295,7 +344,16 @@ class ManagedModel:
                 model_file=self._extras.get("model_file", ""),
             )
             task = _FAMILY_TASK.get(self.family, "tts")
-            model_spec = _AUDIOCPP_MODEL_SPECS if os.path.isdir(_AUDIOCPP_MODEL_SPECS) else None
+            # Variant-routed task (the 1.7B stroke): a stated variant
+            # steers the C++ session task off the family default.
+            variant_task = _VARIANT_TASK.get(self._variant.lower())
+            if variant_task:
+                logger.info(
+                    "routing %s task %s → %s via variant=%r",
+                    self.family, task, variant_task, self._variant,
+                )
+                task = variant_task
+            model_spec = _discover_model_spec(self.family, resolved_path)
 
             self._session = NativeSession(
                 registry=get_registry(),
@@ -320,7 +378,10 @@ class ManagedModel:
             self._session = None
             return False
 
-    def _load_torch(self) -> bool:
+    def _load_torch(
+        self,
+        on_progress: Optional[Callable[[str], None]] = None,
+    ) -> bool:
         """Load moss_sfx_v2 via the pure-torch diffusion pipeline.
 
         The HF checkpoint is identified by model_index.json. GGUF dirs are
@@ -360,7 +421,12 @@ class ManagedModel:
             from .engines.moss_sfx_v2 import TorchSfxEngine
 
             engine = TorchSfxEngine(self.path)
-            if not engine.load():
+            loaded = (
+                engine.load()
+                if on_progress is None
+                else engine.load(on_progress=on_progress)
+            )
+            if not loaded:
                 return False
             self._torch_engine = engine
             ManagedModel._active_model = self
