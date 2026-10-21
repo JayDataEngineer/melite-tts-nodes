@@ -562,7 +562,7 @@ class AudiocoreTTS:
                 # These reach the engine's diffusion loop via
                 # _build_speech_request → options map. Ignored by TTS
                 # families (the engine reads only what it needs).
-                                # UPSTREAM 1:1 (residual-defaults cure, 2026-11-10): the
+                # UPSTREAM 1:1 (residual-defaults cure, 2026-11-10): the
                 # defaults ARE the vendored pipeline's __call__ defaults
                 # (cfg_scale=4.0 / num_inference_steps=100,
                 # pipeline_moss_soundeffect.py:171-172). The old 5.0/50
@@ -571,7 +571,7 @@ class AudiocoreTTS:
                 # catch); the card and kit autofill pin the same numbers,
                 # and the moss-sfx pipeline-truth wall judges all three
                 # against the pipeline's own parsed values.
-"guidance_scale": ("FLOAT",
+                "guidance_scale": ("FLOAT",
                                    {"default": 4.0, "min": 0.0, "max": 20.0,
                                     "step": 0.1,
                                     "tooltip": "Diffusion classifier-free guidance (SFX only)"}),
