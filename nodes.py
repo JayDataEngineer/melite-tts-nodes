@@ -563,11 +563,11 @@ class AudiocoreTTS:
                 # _build_speech_request → options map. Ignored by TTS
                 # families (the engine reads only what it needs).
                 "guidance_scale": ("FLOAT",
-                                   {"default": 5.0, "min": 0.0, "max": 20.0,
+                                   {"default": 4.0, "min": 0.0, "max": 20.0,
                                     "step": 0.1,
                                     "tooltip": "Diffusion classifier-free guidance (SFX only)"}),
                 "num_inference_steps": ("INT",
-                                        {"default": 50, "min": 1, "max": 500,
+                                        {"default": 100, "min": 1, "max": 500,
                                          "step": 1,
                                          "tooltip": "Diffusion steps (SFX only — more = higher quality, slower)"}),
                 "duration_seconds": ("FLOAT",
